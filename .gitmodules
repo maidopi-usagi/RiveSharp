@@ -1,0 +1,3 @@
+[submodule "extern/river-renderer"]
+	path = extern/river-renderer
+	url = https://github.com/wieslawsoltes/rive-renderer.git

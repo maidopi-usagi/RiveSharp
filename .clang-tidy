@@ -1,0 +1,14 @@
+Checks: >-
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  readability-*,
+  modernize-*,
+  -bugprone-easily-swappable-parameters,
+  -modernize-use-trailing-return-type,
+  -modernize-use-using
+WarningsAsErrors: 'clang-analyzer-*'
+HeaderFilterRegex: 'renderer_ffi/.*'
+FormatStyle: file
+InheritParentConfig: false
+AnalyzeTemporaryDtors: false

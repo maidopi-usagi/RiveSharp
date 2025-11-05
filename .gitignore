@@ -399,3 +399,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/renderer_ffi/build/CMakeFiles
+/renderer_ffi/build-release/CMakeFiles
+/build/renderer_ffi/CMakeFiles
+/build/CMakeFiles
