@@ -73,6 +73,8 @@ extern "C"
 #if defined(RIVE_RENDERER_FFI_HAS_VULKAN)
 #include <vulkan/vulkan.h>
 #include "rive/renderer/vulkan/render_context_vulkan_impl.hpp"
+#include "rive/renderer/vulkan/render_target_vulkan.hpp"
+#include "rive/renderer/vulkan/vkutil.hpp"
 #endif
 
 using namespace std::literals;
@@ -286,6 +288,19 @@ namespace
         }
         return context->renderContext->static_impl_cast<rive::gpu::RenderContextD3D12Impl>();
     }
+#endif
+
+#if defined(RIVE_RENDERER_FFI_HAS_VULKAN)
+    rive::gpu::RenderContextVulkanImpl* GetVulkanImpl(ContextHandle* context)
+    {
+        if (context == nullptr || context->renderContext == nullptr)
+        {
+            return nullptr;
+        }
+        return context->renderContext->static_impl_cast<rive::gpu::RenderContextVulkanImpl>();
+    }
+#endif
+#if defined(_WIN32) && !defined(RIVE_UNREAL)
 
     HRESULT CreateRenderTargetTexture(ID3D12Device* device, std::uint32_t width, std::uint32_t height,
                                       Microsoft::WRL::ComPtr<ID3D12Resource>& outTexture)
@@ -457,10 +472,40 @@ namespace
         VkDevice                                   vkDevice = VK_NULL_HANDLE;
         rive::gpu::VulkanFeatures                  vkFeatures {};
         PFN_vkGetInstanceProcAddr                  getInstanceProcAddr = nullptr;
+        PFN_vkGetDeviceProcAddr                    getDeviceProcAddr = nullptr;
         VkQueue                                    graphicsQueue = VK_NULL_HANDLE;
         uint32_t                                   graphicsQueueFamilyIndex = 0;
         VkQueue                                    presentQueue = VK_NULL_HANDLE;
         uint32_t                                   presentQueueFamilyIndex = 0;
+        struct VulkanDispatch
+        {
+            PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR getPhysicalDeviceSurfaceCapabilitiesKHR = nullptr;
+            PFN_vkGetPhysicalDeviceSurfaceFormatsKHR       getPhysicalDeviceSurfaceFormatsKHR = nullptr;
+            PFN_vkGetPhysicalDeviceSurfacePresentModesKHR  getPhysicalDeviceSurfacePresentModesKHR = nullptr;
+            PFN_vkCreateSwapchainKHR                       createSwapchainKHR = nullptr;
+            PFN_vkDestroySwapchainKHR                      destroySwapchainKHR = nullptr;
+            PFN_vkGetSwapchainImagesKHR                    getSwapchainImagesKHR = nullptr;
+            PFN_vkAcquireNextImageKHR                      acquireNextImageKHR = nullptr;
+            PFN_vkQueuePresentKHR                          queuePresentKHR = nullptr;
+            PFN_vkCreateCommandPool                        createCommandPool = nullptr;
+            PFN_vkDestroyCommandPool                       destroyCommandPool = nullptr;
+            PFN_vkAllocateCommandBuffers                   allocateCommandBuffers = nullptr;
+            PFN_vkFreeCommandBuffers                       freeCommandBuffers = nullptr;
+            PFN_vkResetCommandBuffer                       resetCommandBuffer = nullptr;
+            PFN_vkBeginCommandBuffer                       beginCommandBuffer = nullptr;
+            PFN_vkEndCommandBuffer                         endCommandBuffer = nullptr;
+            PFN_vkCreateFence                              createFence = nullptr;
+            PFN_vkDestroyFence                             destroyFence = nullptr;
+            PFN_vkWaitForFences                            waitForFences = nullptr;
+            PFN_vkResetFences                              resetFences = nullptr;
+            PFN_vkCreateSemaphore                          createSemaphore = nullptr;
+            PFN_vkDestroySemaphore                         destroySemaphore = nullptr;
+            PFN_vkQueueSubmit                              queueSubmit = nullptr;
+            PFN_vkDeviceWaitIdle                           deviceWaitIdle = nullptr;
+            PFN_vkCreateImageView                          createImageView = nullptr;
+            PFN_vkDestroyImageView                         destroyImageView = nullptr;
+            PFN_vkCmdPipelineBarrier                       cmdPipelineBarrier = nullptr;
+        } vk {};
 #endif
     };
 
@@ -488,6 +533,10 @@ namespace
 #elif defined(__APPLE__) && !defined(RIVE_UNREAL)
         void*           metalContext {nullptr};
         SurfaceHandle*  surface {nullptr};
+#elif defined(RIVE_RENDERER_FFI_HAS_VULKAN)
+        SurfaceHandle*  surface {nullptr};
+        VkCommandPool   commandPool = VK_NULL_HANDLE;
+        bool            needsSwapchainRecreation {false};
 #endif
         std::unique_ptr<rive::gpu::RenderTarget> cpuRenderTarget;
         std::vector<uint8_t>                     cpuFramebuffer;
@@ -626,6 +675,27 @@ namespace
         bool supportsTearing {false};
 #elif defined(__APPLE__) && !defined(RIVE_UNREAL)
         void* metalSurface {nullptr};
+#elif defined(RIVE_RENDERER_FFI_HAS_VULKAN)
+        VkSurfaceKHR                              vkSurface {VK_NULL_HANDLE};
+        VkSwapchainKHR                            swapchain {VK_NULL_HANDLE};
+        VkFormat                                  imageFormat {VK_FORMAT_UNDEFINED};
+        VkExtent2D                                extent {0, 0};
+        VkPresentModeKHR                          presentMode {VK_PRESENT_MODE_FIFO_KHR};
+        std::vector<VkImage>                      swapchainImages;
+        std::vector<VkImageView>                  imageViews;
+        struct VulkanFrame
+        {
+            VkCommandBuffer                        commandBuffer = VK_NULL_HANDLE;
+            VkFence                                inFlightFence = VK_NULL_HANDLE;
+            VkSemaphore                            imageAvailable = VK_NULL_HANDLE;
+            VkSemaphore                            renderFinished = VK_NULL_HANDLE;
+            rive::gpu::vkutil::ImageAccess         imageAccess {};
+            rive::rcp<rive::gpu::RenderTarget>     renderTarget;
+        };
+        std::vector<VulkanFrame>                  frames;
+        uint32_t                                  currentImageIndex {0};
+        bool                                      swapchainOutOfDate {false};
+        bool                                      suboptimal {false};
 #endif
     };
 
