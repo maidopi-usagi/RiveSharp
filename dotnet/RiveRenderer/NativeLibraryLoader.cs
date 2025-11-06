@@ -62,6 +62,27 @@ internal static class NativeLibraryLoader
                     yield return System.IO.Path.Combine(nativeDir, "rive_renderer_ffi.so");
                 }
             }
+
+            var altNativeDir = System.IO.Path.Combine(baseDirectory, GetRuntimeIdentifier(), "native");
+            if (System.IO.Directory.Exists(altNativeDir))
+            {
+                yield return System.IO.Path.Combine(altNativeDir, "rive_renderer_ffi");
+                yield return System.IO.Path.Combine(altNativeDir, "librive_renderer_ffi");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    yield return System.IO.Path.Combine(altNativeDir, "rive_renderer_ffi.dll");
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    yield return System.IO.Path.Combine(altNativeDir, "librive_renderer_ffi.dylib");
+                    yield return System.IO.Path.Combine(altNativeDir, "rive_renderer_ffi.dylib");
+                }
+                else
+                {
+                    yield return System.IO.Path.Combine(altNativeDir, "librive_renderer_ffi.so");
+                    yield return System.IO.Path.Combine(altNativeDir, "rive_renderer_ffi.so");
+                }
+            }
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -80,5 +101,45 @@ internal static class NativeLibraryLoader
         }
 
         yield return "rive_renderer_ffi";
+    }
+
+    private static string GetRuntimeIdentifier()
+    {
+        var architecture = RuntimeInformation.ProcessArchitecture;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return architecture switch
+            {
+                Architecture.X64 => "win-x64",
+                Architecture.X86 => "win-x86",
+                Architecture.Arm64 => "win-arm64",
+                Architecture.Arm => "win-arm",
+                _ => RuntimeInformation.RuntimeIdentifier,
+            };
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return architecture switch
+            {
+                Architecture.Arm64 => "osx-arm64",
+                Architecture.X64 => "osx-x64",
+                _ => RuntimeInformation.RuntimeIdentifier,
+            };
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return architecture switch
+            {
+                Architecture.X64 => "linux-x64",
+                Architecture.Arm64 => "linux-arm64",
+                Architecture.Arm => "linux-arm",
+                Architecture.X86 => "linux-x86",
+                _ => RuntimeInformation.RuntimeIdentifier,
+            };
+        }
+
+        return RuntimeInformation.RuntimeIdentifier;
     }
 }

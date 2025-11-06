@@ -20,7 +20,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="runtimes/**/native/*.*" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" Visible="false" />
+    <ContentWithTargetPath Include="runtimes/**/native/*.*">
+      <Pack>true</Pack>
+      <PackagePath>%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      <Visible>false</Visible>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
   </ItemGroup>
 
 </Project>

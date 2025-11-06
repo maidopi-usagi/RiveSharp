@@ -23,6 +23,7 @@ public sealed class RendererDevice : IDisposable
 
     public static RendererDevice Create(RendererBackend backend, ushort adapterIndex = 0, RendererDeviceFlags flags = RendererDeviceFlags.None)
     {
+        NativeLibraryLoader.EnsureLoaded();
         var createInfo = new NativeDeviceCreateInfo
         {
             Backend = backend,
@@ -36,6 +37,20 @@ public sealed class RendererDevice : IDisposable
         {
             throw new RendererException(RendererStatus.InternalError, "Native device handle was null.");
         }
+        return new RendererDevice(DeviceHandle.FromNative(nativeHandle.Handle));
+    }
+
+    public static RendererDevice CreateVulkan(RendererVulkanDeviceOptions options)
+    {
+        NativeLibraryLoader.EnsureLoaded();
+        var nativeInfo = options.ToNative();
+        var status = NativeMethods.Device.CreateVulkan(nativeInfo, out var nativeHandle);
+        status.ThrowIfFailed("Failed to create Vulkan renderer device.");
+        if (nativeHandle.Handle == 0)
+        {
+            throw new RendererException(RendererStatus.InternalError, "Native device handle was null.");
+        }
+
         return new RendererDevice(DeviceHandle.FromNative(nativeHandle.Handle));
     }
 
@@ -85,6 +100,7 @@ public sealed class RendererDevice : IDisposable
 
     public static AdapterInfo[] EnumerateAdapters()
     {
+        NativeLibraryLoader.EnsureLoaded();
         unsafe
         {
             var status = NativeMethods.Device.EnumerateAdapters((AdapterDescription*)null, 0, out var count);

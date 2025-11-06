@@ -20,6 +20,12 @@ internal static partial class NativeMethods
             in NativeDeviceCreateInfo info,
             out NativeDeviceHandle device);
 
+        [LibraryImport(LibraryName, EntryPoint = "rive_renderer_device_create_vulkan")]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        internal static partial RendererStatus CreateVulkan(
+            in NativeDeviceCreateInfoVulkan info,
+            out NativeDeviceHandle device);
+
         [LibraryImport(LibraryName, EntryPoint = "rive_renderer_device_retain")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         internal static partial RendererStatus Retain(NativeDeviceHandle device);
@@ -43,6 +49,35 @@ internal struct NativeDeviceCreateInfo
     private byte _backendPadding;
     public ushort AdapterIndex;
     public RendererDeviceFlags Flags;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+internal struct NativeVulkanFeatures
+{
+    public uint ApiVersion;
+    public byte IndependentBlend;
+    public byte FillModeNonSolid;
+    public byte FragmentStoresAndAtomics;
+    public byte ShaderClipDistance;
+    public byte RasterizationOrderColorAttachmentAccess;
+    public byte FragmentShaderPixelInterlock;
+    public byte PortabilitySubset;
+    private byte _reserved;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+internal struct NativeDeviceCreateInfoVulkan
+{
+    public nint Instance;
+    public nint PhysicalDevice;
+    public nint Device;
+    public NativeVulkanFeatures Features;
+    public nint GetInstanceProcAddr;
+    public nint GraphicsQueue;
+    public uint GraphicsQueueFamilyIndex;
+    public nint PresentQueue;
+    public uint PresentQueueFamilyIndex;
+    public nint AllocatorCallbacks;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]

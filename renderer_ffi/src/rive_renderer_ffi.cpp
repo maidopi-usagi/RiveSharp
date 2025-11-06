@@ -1242,6 +1242,22 @@ extern "C"
         return rive_renderer_status_t::ok;
     }
 
+    rive_renderer_status_t rive_renderer_device_create_vulkan(const rive_renderer_device_create_info_vulkan_t* info,
+                                                              rive_renderer_device_t*                   out_device)
+    {
+        (void)info;
+        if (out_device != nullptr)
+        {
+            out_device->handle = nullptr;
+        }
+#if defined(RIVE_RENDERER_FFI_HAS_VULKAN)
+        SetLastError("Vulkan backend is not yet implemented");
+#else
+        SetLastError("Vulkan backend is not available in this build");
+#endif
+        return rive_renderer_status_t::unsupported;
+    }
+
     rive_renderer_status_t rive_renderer_device_retain(rive_renderer_device_t device)
     {
         auto* handle = ToDevice(device);

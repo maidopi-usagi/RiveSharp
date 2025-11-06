@@ -148,6 +148,35 @@ extern "C"
         std::uint32_t                 sample_count;
         rive_renderer_surface_flags_t flags;
     };
+
+    struct rive_renderer_vulkan_features_t
+    {
+        std::uint32_t api_version;
+        std::uint8_t  independent_blend;
+        std::uint8_t  fill_mode_non_solid;
+        std::uint8_t  fragment_stores_and_atomics;
+        std::uint8_t  shader_clip_distance;
+        std::uint8_t  rasterization_order_color_attachment_access;
+        std::uint8_t  fragment_shader_pixel_interlock;
+        std::uint8_t  portability_subset;
+        std::uint8_t  reserved[1];
+    };
+
+    typedef void* (*rive_renderer_vk_get_instance_proc_addr_t)(void* instance, const char* name);
+
+    struct rive_renderer_device_create_info_vulkan_t
+    {
+        void*                                  instance;
+        void*                                  physical_device;
+        void*                                  device;
+        rive_renderer_vulkan_features_t        features;
+        rive_renderer_vk_get_instance_proc_addr_t get_instance_proc_addr;
+        void*                                  graphics_queue;
+        std::uint32_t                          graphics_queue_family_index;
+        void*                                  present_queue;
+        std::uint32_t                          present_queue_family_index;
+        void*                                  allocator_callbacks;
+    };
 #pragma pack(pop)
 
     struct rive_renderer_surface_t
@@ -335,6 +364,10 @@ extern "C"
 
     RIVE_RENDERER_FFI_EXPORT rive_renderer_status_t
     rive_renderer_device_create(const rive_renderer_device_create_info_t* info, rive_renderer_device_t* out_device);
+
+    RIVE_RENDERER_FFI_EXPORT rive_renderer_status_t
+    rive_renderer_device_create_vulkan(const rive_renderer_device_create_info_vulkan_t* info,
+                                       rive_renderer_device_t* out_device);
 
     RIVE_RENDERER_FFI_EXPORT rive_renderer_status_t rive_renderer_device_retain(rive_renderer_device_t device);
 
@@ -594,5 +627,8 @@ extern "C"
 static_assert(sizeof(rive_renderer_adapter_desc_t) == 304, "Adapter descriptor size mismatch");
 static_assert(sizeof(rive_renderer_capabilities_t) == 40, "Capabilities size mismatch");
 static_assert(sizeof(rive_renderer_device_create_info_t) == 8, "Device create info size mismatch");
+static_assert(sizeof(rive_renderer_vulkan_features_t) == 12, "Vulkan features size mismatch");
+static_assert(sizeof(rive_renderer_device_create_info_vulkan_t) == 76,
+              "Vulkan device create info size mismatch");
 static_assert(sizeof(rive_renderer_frame_options_t) == 16, "Frame options size mismatch");
 static_assert(sizeof(rive_renderer_text_style_t) == 24, "Text style size mismatch");
