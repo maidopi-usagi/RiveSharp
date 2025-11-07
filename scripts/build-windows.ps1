@@ -13,6 +13,27 @@ $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Resolve-Path (Join-Path $ScriptDir '..')
 
+$BashCommand = Get-Command bash -ErrorAction SilentlyContinue
+if (-not $BashCommand) {
+    throw "Required command 'bash' not found. Ensure Git for Windows (with bash) is installed and on PATH."
+}
+
+function Invoke-BashScript {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Script,
+        [string[]]$Arguments = @(),
+        [switch]$Quiet
+    )
+
+    if ($Quiet) {
+        & $BashCommand $Script @Arguments | Out-Null
+    }
+    else {
+        & $BashCommand $Script @Arguments
+    }
+}
+
 $premakeDir = Join-Path $RootDir 'extern/river-renderer/build/dependencies/premake-core/bin/release'
 if (Test-Path (Join-Path $premakeDir 'premake5.exe')) {
     $env:PATH = "$premakeDir;$env:PATH"
@@ -84,11 +105,11 @@ function Invoke-RiverRendererBuild {
             New-Item -ItemType SymbolicLink -Path 'premake5.lua' -Target 'premake5_v2.lua' -Force | Out-Null
         }
         $env:RIVE_PREMAKE_ARGS = '--with_rive_text --with_rive_layout'
-        ./build/build_rive.sh clean 2>$null | Out-Null
+        Invoke-BashScript ./build/build_rive.sh -Arguments @('clean') -Quiet
         if (Test-Path 'out') {
             Remove-Item -Recurse -Force 'out'
         }
-        ./build/build_rive.sh $Config | Write-Output
+        Invoke-BashScript ./build/build_rive.sh -Arguments @($Config)
     }
     finally {
         Remove-Item Env:RIVE_PREMAKE_ARGS -ErrorAction SilentlyContinue
@@ -98,11 +119,11 @@ function Invoke-RiverRendererBuild {
     Push-Location (Join-Path $RootDir 'extern/river-renderer/renderer')
     try {
         $env:RIVE_PREMAKE_ARGS = '--with_rive_text --with_rive_layout'
-        ../build/build_rive.sh clean 2>$null | Out-Null
+        Invoke-BashScript ../build/build_rive.sh -Arguments @('clean') -Quiet
         if (Test-Path 'out') {
             Remove-Item -Recurse -Force 'out'
         }
-        ../build/build_rive.sh $Config | Write-Output
+        Invoke-BashScript ../build/build_rive.sh -Arguments @($Config)
     }
     finally {
         Remove-Item Env:RIVE_PREMAKE_ARGS -ErrorAction SilentlyContinue
