@@ -23,6 +23,44 @@ if (-not $MakeCommand) {
     throw "Required command 'make' not found. Install GNU make (e.g. 'choco install make')."
 }
 
+$VsWhere = Get-Command vswhere -ErrorAction SilentlyContinue
+if (-not $VsWhere) {
+    throw "Required command 'vswhere' not found. Install Visual Studio Build Tools (which provide vswhere)."
+}
+
+$vsInstallPath = & $VsWhere -latest -requires Microsoft.Component.MSBuild -property installationPath
+if (-not $vsInstallPath) {
+    throw "Unable to locate a Visual Studio installation with MSBuild via vswhere."
+}
+
+$msbuildDir = Join-Path $vsInstallPath 'MSBuild/Current/Bin'
+if (-not (Test-Path $msbuildDir)) {
+    throw "MSBuild directory not found at $msbuildDir"
+}
+
+$env:PATH = "$msbuildDir;$env:PATH"
+
+$windowsKitsBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'
+if (-not (Test-Path $windowsKitsBin)) {
+    throw "Windows 10 SDK bin directory not found at $windowsKitsBin"
+}
+
+$fxcDir = Get-ChildItem -Path $windowsKitsBin -Directory -ErrorAction Stop |
+    Sort-Object Name -Descending |
+    ForEach-Object {
+        $candidate = Join-Path $_.FullName 'x64'
+        if (Test-Path (Join-Path $candidate 'fxc.exe')) {
+            return $candidate
+        }
+    } |
+    Select-Object -First 1
+
+if (-not $fxcDir) {
+    throw "Unable to locate fxc.exe under $windowsKitsBin"
+}
+
+$env:PATH = "$fxcDir;$env:PATH"
+
 function Invoke-BashScript {
     param(
         [Parameter(Mandatory = $true)]
